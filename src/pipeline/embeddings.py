@@ -31,7 +31,14 @@ class EmbeddingEngine:
 
     def _get_local_model(self):
         if self._local_model is None:
-            from sentence_transformers import SentenceTransformer
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError:
+                raise RuntimeError(
+                    "sentence-transformers not installed. "
+                    "Set provider=gemini with a GOOGLE_API_KEY, "
+                    "or install: pip install sentence-transformers"
+                )
             logger.info(f"Loading local model: {self.local_model_name}")
             self._local_model = SentenceTransformer(self.local_model_name)
         return self._local_model
