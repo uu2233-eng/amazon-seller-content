@@ -4,7 +4,7 @@
 
 # --- API Keys (也可以通过 .env 文件或环境变量设置) ---
 api_keys:
-  openai_api_key: ""            # OpenAI API Key
+  google_api_key: ""            # Google Gemini API Key
   youtube_api_key: ""           # YouTube Data API v3 Key
   reddit_client_id: ""          # Reddit App Client ID
   reddit_client_secret: ""      # Reddit App Client Secret
@@ -55,8 +55,8 @@ pipeline:
     min_keyword_hits: 1         # 最少命中关键词数
     case_sensitive: false
   embedding:
-    provider: "openai"          # openai | local
-    openai_model: "text-embedding-3-small"
+    provider: "gemini"          # gemini | local
+    gemini_model: "text-embedding-004"
     local_model: "all-MiniLM-L6-v2"
     batch_size: 64
   dedup:
@@ -69,7 +69,7 @@ pipeline:
 
 # --- 内容生成设置 ---
 generation:
-  model: "gpt-4o"
+  model: "gemini-2.0-flash"
   temperature: 0.8
   max_tokens: 4000
   output_formats:

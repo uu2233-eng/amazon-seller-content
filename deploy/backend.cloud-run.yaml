@@ -43,11 +43,11 @@ spec:
                 secretKeyRef:
                   key: latest
                   name: supabase-anon-key
-            - name: OPENAI_API_KEY
+            - name: GOOGLE_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
-                  name: openai-api-key
+                  name: google-api-key
             - name: YOUTUBE_API_KEY
               valueFrom:
                 secretKeyRef:

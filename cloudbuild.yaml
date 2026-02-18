@@ -81,7 +81,7 @@ steps:
       - --concurrency=20
       - --min-instances=0
       - --max-instances=5
-      - --set-secrets=SUPABASE_DB_URL=supabase-db-url:latest,OPENAI_API_KEY=openai-api-key:latest,YOUTUBE_API_KEY=youtube-api-key:latest,REDDIT_CLIENT_ID=reddit-client-id:latest,REDDIT_CLIENT_SECRET=reddit-client-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_ANON_KEY=supabase-anon-key:latest
+      - --set-secrets=SUPABASE_DB_URL=supabase-db-url:latest,GOOGLE_API_KEY=google-api-key:latest,YOUTUBE_API_KEY=youtube-api-key:latest,REDDIT_CLIENT_ID=reddit-client-id:latest,REDDIT_CLIENT_SECRET=reddit-client-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_ANON_KEY=supabase-anon-key:latest
       - --set-env-vars=GCP_PROJECT=$PROJECT_ID,GCP_LOCATION=${_REGION},GCP_TASKS_QUEUE=pipeline-jobs
     waitFor: [push-api]
 

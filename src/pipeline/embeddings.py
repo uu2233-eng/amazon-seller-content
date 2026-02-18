@@ -3,7 +3,7 @@
 
 Pipeline 第 ② 步：将过滤后的内容转为向量表示。
 支持两种 provider：
-  - openai: 使用 OpenAI text-embedding-3-small（付费但效果好）
+  - gemini: 使用 Google Gemini text-embedding-004（768 维）
   - local: 使用 sentence-transformers all-MiniLM-L6-v2（免费本地运行）
 """
 
@@ -22,11 +22,11 @@ class EmbeddingEngine:
 
     def __init__(self, config: dict):
         pipe_config = config.get("pipeline", {}).get("embedding", {})
-        self.provider = pipe_config.get("provider", "openai")
+        self.provider = pipe_config.get("provider", "gemini")
         self.batch_size = pipe_config.get("batch_size", 64)
-        self.openai_model = pipe_config.get("openai_model", "text-embedding-3-small")
+        self.gemini_model = pipe_config.get("gemini_model", "text-embedding-004")
         self.local_model_name = pipe_config.get("local_model", "all-MiniLM-L6-v2")
-        self.api_key = config.get("api_keys", {}).get("openai_api_key", "")
+        self.api_key = config.get("api_keys", {}).get("google_api_key", "")
         self._local_model = None
 
     def _get_local_model(self):
@@ -36,21 +36,21 @@ class EmbeddingEngine:
             self._local_model = SentenceTransformer(self.local_model_name)
         return self._local_model
 
-    def _embed_openai(self, texts: list[str]) -> np.ndarray:
-        from openai import OpenAI
+    def _embed_gemini(self, texts: list[str]) -> np.ndarray:
+        import google.generativeai as genai
 
-        client = OpenAI(api_key=self.api_key)
+        genai.configure(api_key=self.api_key)
         all_embeddings = []
 
         for i in range(0, len(texts), self.batch_size):
             batch = texts[i : i + self.batch_size]
-            response = client.embeddings.create(
-                model=self.openai_model,
-                input=batch,
+            result = genai.embed_content(
+                model=f"models/{self.gemini_model}",
+                content=batch,
+                task_type="RETRIEVAL_DOCUMENT",
             )
-            batch_embeddings = [item.embedding for item in response.data]
-            all_embeddings.extend(batch_embeddings)
-            logger.debug(f"OpenAI embedding batch {i // self.batch_size + 1} done")
+            all_embeddings.extend(result["embedding"])
+            logger.debug(f"Gemini embedding batch {i // self.batch_size + 1} done")
 
         return np.array(all_embeddings)
 
@@ -71,11 +71,11 @@ class EmbeddingEngine:
 
         logger.info(f"Embedding {len(texts)} texts using provider={self.provider}")
 
-        if self.provider == "openai":
+        if self.provider == "gemini":
             if not self.api_key:
-                logger.warning("OpenAI API key missing, falling back to local model.")
+                logger.warning("Google API key missing, falling back to local model.")
                 return self._embed_local(texts)
-            return self._embed_openai(texts)
+            return self._embed_gemini(texts)
         else:
             return self._embed_local(texts)
 

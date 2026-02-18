@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS contents (
     keyword_hits     INTEGER DEFAULT 0,
     is_duplicate     BOOLEAN DEFAULT FALSE,
     cluster_id       INTEGER REFERENCES topic_clusters(id),
-    embedding        vector(1536),             -- pgvector: OpenAI text-embedding-3-small
+    embedding        vector(768),              -- pgvector: Gemini text-embedding-004
     created_at       TIMESTAMP DEFAULT NOW()
 );
 
@@ -134,7 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_ideas_created ON content_ideas(created_at DESC);
 -- 7. 语义搜索函数 (可选，Supabase Edge Function 可直接调用)
 -- ─────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION match_contents(
-    query_embedding vector(1536),
+    query_embedding vector(768),
     match_threshold FLOAT DEFAULT 0.75,
     match_count INT DEFAULT 10,
     filter_job_id INT DEFAULT NULL

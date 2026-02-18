@@ -55,26 +55,26 @@ class ContentGenerator:
 
     def __init__(self, config: dict):
         gen_config = config.get("generation", {})
-        self.model = gen_config.get("model", "gpt-4o")
+        self.model = gen_config.get("model", "gemini-2.0-flash")
         self.temperature = gen_config.get("temperature", 0.8)
         self.max_tokens = gen_config.get("max_tokens", 4000)
         self.output_formats = gen_config.get("output_formats", ["article"])
-        self.api_key = config.get("api_keys", {}).get("openai_api_key", "")
+        self.api_key = config.get("api_keys", {}).get("google_api_key", "")
 
     def _call_llm(self, prompt: str) -> str:
-        from openai import OpenAI
+        import google.generativeai as genai
 
-        client = OpenAI(api_key=self.api_key)
-        response = client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": "You are a world-class content creator specializing in Amazon seller education and e-commerce content."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
+        genai.configure(api_key=self.api_key)
+        model = genai.GenerativeModel(
+            self.model,
+            system_instruction="You are a world-class content creator specializing in Amazon seller education and e-commerce content.",
+            generation_config=genai.GenerationConfig(
+                temperature=self.temperature,
+                max_output_tokens=self.max_tokens,
+            ),
         )
-        return response.choices[0].message.content or ""
+        response = model.generate_content(prompt)
+        return response.text or ""
 
     def generate_topic_label(self, cluster: TopicCluster) -> str:
         """用 LLM 为话题簇生成标签"""

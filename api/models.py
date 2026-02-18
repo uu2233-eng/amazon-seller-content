@@ -34,8 +34,8 @@ except ImportError:
 # Supabase 用 JSONB（更快的索引），SQLite 用普通 JSON
 _JsonCol = JSONB if is_postgres() else JSON
 
-# embedding 维度：text-embedding-3-small = 1536, all-MiniLM-L6-v2 = 384
-EMBEDDING_DIM = 1536
+# embedding 维度：Gemini text-embedding-004 = 768, all-MiniLM-L6-v2 = 384
+EMBEDDING_DIM = 768
 
 
 def _embedding_column():

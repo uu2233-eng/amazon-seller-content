@@ -25,7 +25,7 @@ def load_config(config_path: str = "config.yaml") -> dict:
 
     api_keys = config.setdefault("api_keys", {})
     env_map = {
-        "OPENAI_API_KEY": "openai_api_key",
+        "GOOGLE_API_KEY": "google_api_key",
         "YOUTUBE_API_KEY": "youtube_api_key",
         "REDDIT_CLIENT_ID": "reddit_client_id",
         "REDDIT_CLIENT_SECRET": "reddit_client_secret",

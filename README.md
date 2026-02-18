@@ -42,9 +42,9 @@ Content Ideas (内容创意输出)
 | 阶段 | 技术 | 目的 |
 |------|------|------|
 | **关键词粗筛** | 正则匹配 | 快速过滤无关内容，减少下游 embedding 调用量，节省成本 |
-| **向量化 + 去重** | OpenAI embedding / sentence-transformers + 余弦相似度 | 合并同义表达（如 "FBA fees" 与 "Amazon fulfillment cost"），消除重复帖子 |
+| **向量化 + 去重** | Gemini embedding / sentence-transformers + 余弦相似度 | 合并同义表达（如 "FBA fees" 与 "Amazon fulfillment cost"），消除重复帖子 |
 | **话题聚类** | HDBSCAN / KMeans | 自动发现热点话题方向，不需要预定义话题数量 |
-| **内容生成** | GPT-4o | 将话题簇转化为可直接使用的内容创意 |
+| **内容生成** | Gemini 2.0 Flash | 将话题簇转化为可直接使用的内容创意 |
 
 ---
 
@@ -146,13 +146,13 @@ cp .env.example .env
 ```
 
 ```
-OPENAI_API_KEY=sk-xxxxx        # 必需（用于 embedding + 内容生成）
+GOOGLE_API_KEY=AIzaxxxxx       # 必需（用于 Gemini embedding + 内容生成）
 YOUTUBE_API_KEY=AIzaxxxxx      # 可选（YouTube 抓取）
 REDDIT_CLIENT_ID=xxxxx         # 可选（Reddit 抓取）
 REDDIT_CLIENT_SECRET=xxxxx     # 可选（Reddit 抓取）
 ```
 
-> 如果只配置 OpenAI Key，系统会跳过 YouTube 和 Reddit 抓取，仍可使用 RSS 和 Google Trends。
+> 如果只配置 Google API Key，系统会跳过 YouTube 和 Reddit 抓取，仍可使用 RSS 和 Google Trends。
 
 ### 6.3 运行
 
@@ -231,9 +231,9 @@ output/
 | Reddit API | $0（免费） |
 | RSS | $0（免费） |
 | Google Trends | $0（免费） |
-| OpenAI Embedding (500 条 × ~200 tokens) | ~$0.01 |
-| GPT-4o 生成 (10 话题 × 5 格式 = 50 次) | ~$2-5 |
-| **单次总计** | **~$2-5** |
+| Gemini Embedding (500 条) | $0（免费额度内） |
+| Gemini 2.0 Flash 生成 (10 话题 × 5 格式 = 50 次) | ~$0.01-0.05 |
+| **单次总计** | **~$0.01-0.05** |
 
 ---
 
@@ -383,7 +383,7 @@ SUPABASE_ANON_KEY=eyJxxxxx
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │  audiences   │────→│  scrape_jobs │────→│   contents   │
-│              │     │              │     │  + embedding  │ ← pgvector (1536维)
+│              │     │              │     │  + embedding  │ ← pgvector (768维)
 │ id           │     │ id           │     │  (vector)     │
 │ name         │     │ audience_id  │     │              │
 │ keywords[]   │     │ status       │     │ content_hash │
@@ -415,7 +415,7 @@ Supabase 内置 **pgvector** 扩展，本项目利用它实现：
 
 | 功能 | 实现方式 |
 |------|---------|
-| 内容 embedding 存储 | `contents.embedding` 列 (`vector(1536)`) |
+| 内容 embedding 存储 | `contents.embedding` 列 (`vector(768)`) |
 | 语义去重 | 余弦距离 `<=>` 运算符，阈值 0.88 |
 | 语义搜索 | `POST /api/topics/search/semantic` |
 | 数据库内检索 | `match_contents()` SQL 函数 |
