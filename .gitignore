@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js (frontend)
+node_modules/
+web/node_modules/
+web/.next/
+web/out/
+
+# Output & data
+output/
+data/*.db
+data/*.sqlite
+data/*.json
+!data/.gitkeep
+
+# Logs
+*.log
+
+# Docker
+*.tar
+
+# Coverage & testing
+.coverage
+htmlcov/
+.pytest_cache/

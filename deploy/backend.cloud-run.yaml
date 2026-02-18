@@ -1,0 +1,73 @@
+# Cloud Run 后端服务配置
+# 部署命令：gcloud run services replace deploy/backend.cloud-run.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: content-engine-api
+  annotations:
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # 最小实例数（避免冷启动，0=按需）
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "5"
+        # 请求超时 60 分钟（Cloud Tasks 回调需要）
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      containerConcurrency: 20
+      timeoutSeconds: 3600
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/content-engine/api:latest
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          env:
+            - name: SUPABASE_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-db-url
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-url
+            - name: SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-anon-key
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: openai-api-key
+            - name: YOUTUBE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: youtube-api-key
+            - name: REDDIT_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: reddit-client-id
+            - name: REDDIT_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: reddit-client-secret
+            - name: GCP_PROJECT
+              value: PROJECT_ID
+            - name: GCP_LOCATION
+              value: us-central1
+            - name: GCP_TASKS_QUEUE
+              value: pipeline-jobs
+            - name: CLOUD_RUN_BACKEND_URL
+              value: https://content-engine-api-HASH-uc.a.run.app

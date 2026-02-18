@@ -1,0 +1,123 @@
+# ============================================================
+# Cloud Build — 自动构建 + 部署到 Cloud Run
+#
+# 触发器：push 到 main 分支
+# 配置方式：
+#   gcloud builds triggers create github \
+#     --repo-name=amazon-seller-content-engine \
+#     --branch-pattern=^main$ \
+#     --build-config=cloudbuild.yaml \
+#     --substitutions=_REGION=us-central1
+# ============================================================
+
+substitutions:
+  _REGION: us-central1
+  _REPO: content-engine
+  _API_SERVICE: content-engine-api
+  _WEB_SERVICE: content-engine-web
+
+steps:
+  # ── 1. 构建后端镜像 ──
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:latest
+      - -f
+      - Dockerfile
+      - .
+
+  # ── 2. 构建前端镜像 ──
+  - id: build-web
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web:latest
+      - --build-arg
+      - NEXT_PUBLIC_API_URL=https://${_API_SERVICE}-$PROJECT_NUMBER.${_REGION}.run.app
+      - -f
+      - web/Dockerfile
+      - web/
+
+  # ── 3. 推送后端镜像 ──
+  - id: push-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api
+    waitFor: [build-api]
+
+  # ── 4. 推送前端镜像 ──
+  - id: push-web
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web
+    waitFor: [build-web]
+
+  # ── 5. 部署后端到 Cloud Run ──
+  - id: deploy-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_API_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --memory=2Gi
+      - --cpu=2
+      - --timeout=3600
+      - --concurrency=20
+      - --min-instances=0
+      - --max-instances=5
+      - --set-secrets=SUPABASE_DB_URL=supabase-db-url:latest,OPENAI_API_KEY=openai-api-key:latest,YOUTUBE_API_KEY=youtube-api-key:latest,REDDIT_CLIENT_ID=reddit-client-id:latest,REDDIT_CLIENT_SECRET=reddit-client-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_ANON_KEY=supabase-anon-key:latest
+      - --set-env-vars=GCP_PROJECT=$PROJECT_ID,GCP_LOCATION=${_REGION},GCP_TASKS_QUEUE=pipeline-jobs
+    waitFor: [push-api]
+
+  # ── 6. 获取后端 URL 并部署前端 ──
+  - id: deploy-web
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        API_URL=$(gcloud run services describe ${_API_SERVICE} --region=${_REGION} --format='value(status.url)')
+        gcloud run deploy ${_WEB_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --memory=512Mi \
+          --cpu=1 \
+          --timeout=60 \
+          --concurrency=80 \
+          --min-instances=0 \
+          --max-instances=3 \
+          --set-env-vars=NEXT_PUBLIC_API_URL=$$API_URL
+        # 回填后端自身 URL（Cloud Tasks 回调用）
+        gcloud run services update ${_API_SERVICE} \
+          --region=${_REGION} \
+          --set-env-vars=CLOUD_RUN_BACKEND_URL=$$API_URL
+    waitFor: [push-web, deploy-api]
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:latest
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/web:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+timeout: 1800s

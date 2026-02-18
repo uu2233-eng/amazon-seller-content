@@ -1,0 +1,89 @@
+# ============================================================
+# Amazon Seller Content Engine - 配置文件
+# ============================================================
+
+# --- API Keys (也可以通过 .env 文件或环境变量设置) ---
+api_keys:
+  openai_api_key: ""            # OpenAI API Key
+  youtube_api_key: ""           # YouTube Data API v3 Key
+  reddit_client_id: ""          # Reddit App Client ID
+  reddit_client_secret: ""      # Reddit App Client Secret
+  reddit_user_agent: "AmazonSellerContentEngine/1.0"
+
+# --- 抓取设置 ---
+scraping:
+  lookback_days: 7              # 回溯天数（近一周）
+  max_results_per_source: 100   # 每个数据源最大抓取数
+  youtube:
+    enabled: true
+    max_results: 50
+    order: "relevance"          # relevance | date | viewCount
+    region_code: "US"
+    relevance_language: "en"
+  reddit:
+    enabled: true
+    subreddits:
+      - "AmazonSeller"
+      - "FulfillmentByAmazon"
+      - "AmazonFBA"
+      - "ecommerce"
+      - "EntrepreneurRideAlong"
+      - "AmazonMerch"
+    sort: "hot"                 # hot | new | top
+    time_filter: "week"
+  rss:
+    enabled: true
+    feeds:
+      - name: "Jungle Scout"
+        url: "https://www.junglescout.com/blog/feed/"
+      - name: "Helium 10"
+        url: "https://www.helium10.com/blog/feed/"
+      - name: "Seller App"
+        url: "https://www.sellerapp.com/blog/feed/"
+      - name: "Feedvisor"
+        url: "https://feedvisor.com/blog/feed/"
+      - name: "Sellics"
+        url: "https://sellics.com/blog/feed/"
+  google_trends:
+    enabled: true
+    geo: "US"
+    timeframe: "now 7-d"
+
+# --- 处理管道设置 ---
+pipeline:
+  keyword_filter:
+    min_keyword_hits: 1         # 最少命中关键词数
+    case_sensitive: false
+  embedding:
+    provider: "openai"          # openai | local
+    openai_model: "text-embedding-3-small"
+    local_model: "all-MiniLM-L6-v2"
+    batch_size: 64
+  dedup:
+    similarity_threshold: 0.88  # 余弦相似度阈值（高于此值视为重复）
+  clustering:
+    algorithm: "hdbscan"        # hdbscan | kmeans
+    min_cluster_size: 3
+    min_samples: 2
+    kmeans_n_clusters: 10       # 仅在 algorithm=kmeans 时生效
+
+# --- 内容生成设置 ---
+generation:
+  model: "gpt-4o"
+  temperature: 0.8
+  max_tokens: 4000
+  output_formats:
+    - "article"                 # 图文/博客文案
+    - "short_video"             # 短视频脚本 (60s)
+    - "long_video"              # 长视频脚本 (5-10min)
+    - "image_prompt"            # AI 图片生成 Prompt
+    - "social_post"             # 社交媒体帖子
+  languages:
+    - "en"
+
+# --- 输出设置 ---
+output:
+  dir: "output"
+  format: "markdown"            # markdown | json | both
+  include_source_links: true
+  max_topics: 20                # 最多输出话题数
