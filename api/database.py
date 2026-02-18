@@ -30,12 +30,18 @@ logger = logging.getLogger(__name__)
 
 # ── 连接地址优先级 ──
 _raw_url = (
-    os.getenv("SUPABASE_DB_URL")
-    or os.getenv("DATABASE_URL")
+    os.getenv("SUPABASE_DB_URL", "").strip()
+    or os.getenv("DATABASE_URL", "").strip()
     or "sqlite:///./data/content_engine.db"
 )
 
 _is_postgres = _raw_url.startswith("postgresql")
+
+if os.getenv("SUPABASE_DB_URL") and not _is_postgres:
+    logger.error(
+        f"SUPABASE_DB_URL is set but does not start with 'postgresql': "
+        f"first 20 chars = {repr(_raw_url[:20])}"
+    )
 
 
 def _build_engine():
