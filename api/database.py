@@ -14,8 +14,10 @@ from __future__ import annotations
 
 import os
 import logging
+from urllib.parse import urlparse, unquote
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 try:
@@ -27,25 +29,39 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # ── 连接地址优先级 ──
-DATABASE_URL = (
+_raw_url = (
     os.getenv("SUPABASE_DB_URL")
     or os.getenv("DATABASE_URL")
     or "sqlite:///./data/content_engine.db"
 )
 
-_is_postgres = DATABASE_URL.startswith("postgresql")
+_is_postgres = _raw_url.startswith("postgresql")
 
-if _is_postgres:
-    engine = create_engine(
-        DATABASE_URL,
-        pool_size=10,
-        max_overflow=20,
-        pool_pre_ping=True,
-        pool_recycle=300,
-        connect_args={"options": "-c statement_timeout=30000"},
-    )
-else:
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+def _build_engine():
+    if _is_postgres:
+        parsed = urlparse(_raw_url)
+        url = URL.create(
+            drivername="postgresql",
+            username=unquote(parsed.username or ""),
+            password=unquote(parsed.password or ""),
+            host=parsed.hostname,
+            port=parsed.port,
+            database=(parsed.path or "/postgres").lstrip("/"),
+        )
+        return create_engine(
+            url,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            connect_args={"options": "-c statement_timeout=30000"},
+        )
+    else:
+        return create_engine(_raw_url, connect_args={"check_same_thread": False})
+
+
+engine = _build_engine()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
